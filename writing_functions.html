@@ -355,7 +355,7 @@ display: none;
 </div>
 
 
-<p>Load key packages:</p>
+<p>Load key packages and graphing settings:</p>
 <pre class="r"><code>library(tidyverse)
 library(rvest)
 
@@ -452,7 +452,7 @@ tibble(
 ##    mean    sd
 ##   &lt;dbl&gt; &lt;dbl&gt;
 ## 1  5.12 0.625</code></pre>
-<p>Now lets write a fucntion the uases “n”, a true mean, and true sd as
+<p>Now lets write a fucntion the uses “n”, a true mean, and true sd as
 inputs</p>
 <pre class="r"><code>sim_mean_sd = function(n_obs, mu, sigma) {
   
@@ -474,6 +474,104 @@ sim_mean_sd(n_obs = 3000, mu = 50, sigma = .5)</code></pre>
 ##    mean    sd
 ##   &lt;dbl&gt; &lt;dbl&gt;
 ## 1  22.5  4.20</code></pre>
+</div>
+<div id="lotr-function" class="section level3">
+<h3>LOTR function:</h3>
+<pre class="r"><code>lotr_func = function(path = &quot;data/LotR_words.xlsx&quot;, cells, title){
+  
+  movie_df = readxl::read_excel(path, range = cells) |&gt; 
+    mutate(movie = title) |&gt; 
+    janitor::clean_names() |&gt; 
+    pivot_longer(
+      female:male, 
+      names_to = &quot;sex&quot;,
+      values_to = &quot;words&quot;
+    ) |&gt; 
+    select(movie, everything())
+    
+  
+  movie_df
+}
+
+lotr_df = 
+  bind_rows(
+    lotr_func(cells = &quot;B3:D6&quot;, title = &quot;fellowship_ring&quot;),
+    lotr_func(cells = &quot;F3:H6&quot;, title = &quot;two_towers&quot;),
+    lotr_func(cells = &quot;J3:L6&quot;, title = &quot;return_king&quot;))</code></pre>
+</div>
+<div id="nsduh-dataset" class="section level3">
+<h3>NSDUH dataset:</h3>
+<pre class="r"><code>nsduh_url = &quot;http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm&quot;
+
+nsduh_html = read_html(nsduh_url)
+
+data_marj = 
+  nsduh_html |&gt; 
+  html_table() |&gt; 
+  nth(1) |&gt;
+  slice(-1) |&gt; 
+  select(-contains(&quot;P Value&quot;)) |&gt;
+  pivot_longer(
+    -State,
+    names_to = &quot;age_year&quot;, 
+    values_to = &quot;percent&quot;) |&gt;
+  separate(age_year, into = c(&quot;age&quot;, &quot;year&quot;), sep = &quot;\\(&quot;) |&gt;
+  mutate(
+    year = str_replace(year, &quot;\\)&quot;, &quot;&quot;),
+    percent = str_replace(percent, &quot;[a-c]$&quot;, &quot;&quot;),
+    percent = as.numeric(percent)) |&gt;
+  filter(!(State %in% c(&quot;Total U.S.&quot;, &quot;Northeast&quot;, &quot;Midwest&quot;, &quot;South&quot;, &quot;West&quot;)))</code></pre>
+<p>Now translating the above code into a function:</p>
+<pre class="r"><code>nsdhu_import = function(html, table_num, outcome) {
+  
+  html |&gt; 
+  html_table() |&gt; 
+  nth(table_num) |&gt;
+  slice(-1) |&gt; 
+  select(-contains(&quot;P Value&quot;)) |&gt;
+  pivot_longer(
+    -State,
+    names_to = &quot;age_year&quot;, 
+    values_to = &quot;percent&quot;) |&gt;
+  separate(age_year, into = c(&quot;age&quot;, &quot;year&quot;), sep = &quot;\\(&quot;) |&gt;
+  mutate(
+    year = str_replace(year, &quot;\\)&quot;, &quot;&quot;),
+    percent = str_replace(percent, &quot;[a-c]$&quot;, &quot;&quot;),
+    percent = as.numeric(percent),
+    outcome = outcome) |&gt;
+  filter(!(State %in% c(&quot;Total U.S.&quot;, &quot;Northeast&quot;, &quot;Midwest&quot;, &quot;South&quot;, &quot;West&quot;)))
+}
+
+nsdhu_import(html = nsduh_html, table_num = 1, outcome = &quot;marj&quot;)</code></pre>
+<pre><code>## # A tibble: 510 × 5
+##    State   age   year      percent outcome
+##    &lt;chr&gt;   &lt;chr&gt; &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;  
+##  1 Alabama 12+   2013-2014    9.98 marj   
+##  2 Alabama 12+   2014-2015    9.6  marj   
+##  3 Alabama 12-17 2013-2014    9.9  marj   
+##  4 Alabama 12-17 2014-2015    9.71 marj   
+##  5 Alabama 18-25 2013-2014   27.0  marj   
+##  6 Alabama 18-25 2014-2015   26.1  marj   
+##  7 Alabama 26+   2013-2014    7.1  marj   
+##  8 Alabama 26+   2014-2015    6.81 marj   
+##  9 Alabama 18+   2013-2014    9.99 marj   
+## 10 Alabama 18+   2014-2015    9.59 marj   
+## # ℹ 500 more rows</code></pre>
+<pre class="r"><code>nsdhu_import(html = nsduh_html, table_num = 4, outcome = &quot;cocaine&quot;)</code></pre>
+<pre><code>## # A tibble: 510 × 5
+##    State   age   year      percent outcome
+##    &lt;chr&gt;   &lt;chr&gt; &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;  
+##  1 Alabama 12+   2013-2014    1.23 cocaine
+##  2 Alabama 12+   2014-2015    1.22 cocaine
+##  3 Alabama 12-17 2013-2014    0.42 cocaine
+##  4 Alabama 12-17 2014-2015    0.41 cocaine
+##  5 Alabama 18-25 2013-2014    3.09 cocaine
+##  6 Alabama 18-25 2014-2015    3.2  cocaine
+##  7 Alabama 26+   2013-2014    1.01 cocaine
+##  8 Alabama 26+   2014-2015    0.99 cocaine
+##  9 Alabama 18+   2013-2014    1.31 cocaine
+## 10 Alabama 18+   2014-2015    1.31 cocaine
+## # ℹ 500 more rows</code></pre>
 </div>
 
 
