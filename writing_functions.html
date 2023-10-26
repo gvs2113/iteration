@@ -355,8 +355,23 @@ display: none;
 </div>
 
 
-<div id="set-seed-for-reproducibility" class="section level2">
-<h2>Set seed for reproducibility</h2>
+<p>Load key packages:</p>
+<pre class="r"><code>library(tidyverse)
+library(rvest)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = &quot;90%&quot;
+)
+
+theme_set(theme_minimal() + theme(legend.position = &quot;bottom&quot;))
+
+options(
+  ggplot2.continuous.colour = &quot;viridis&quot;,
+  ggplot2.continuous.fill = &quot;viridis&quot;
+)</code></pre>
+<p>Set seed for reproducibility</p>
 <pre class="r"><code>set.seed(12345)</code></pre>
 <div id="z-score-function" class="section level3">
 <h3>Z score function</h3>
@@ -398,6 +413,67 @@ display: none;
 <pre class="r"><code>z_score(iris)</code></pre>
 <pre><code>## Error in z_score(iris): Argument should be numbers</code></pre>
 </div>
+<div id="multiple-outputs." class="section level3">
+<h3>Multiple outputs.</h3>
+<p>Write a function that returns the mean and sd from a sample of
+numbers.</p>
+<pre class="r"><code>mean_and_sd = function (x) {
+  
+  if(!is.numeric(x)) {
+    stop(&quot;Argument should be numbers&quot;)
+  } else if(length(x) &lt; 2) {
+    stop(&quot;You need at least 2 arguments to get z score&quot;)
+  }
+  
+  mean_x = mean(x)
+  sd_x = sd(x)
+  
+  tibble(
+    mean = mean_x,
+    sd = sd_x
+  )
+}</code></pre>
+<p>Double-checking this is correct…</p>
+<pre class="r"><code>mean_and_sd(x_vec)</code></pre>
+<pre><code>## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1  5.02 0.250</code></pre>
+</div>
+<div id="start-getting-means-and-sds" class="section level3">
+<h3>Start getting means and sds</h3>
+<pre class="r"><code>x_vec = rnorm(n = 30, mean = 5, sd = .5)
+
+tibble(
+  mean = mean(x_vec),
+  sd = sd(x_vec)
+)</code></pre>
+<pre><code>## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1  5.12 0.625</code></pre>
+<p>Now lets write a fucntion the uases “n”, a true mean, and true sd as
+inputs</p>
+<pre class="r"><code>sim_mean_sd = function(n_obs, mu, sigma) {
+  
+  x_vec = rnorm(n = n_obs, mean = mu, sd = sigma)
+
+  tibble(
+    mean = mean(x_vec),
+    sd = sd(x_vec)
+)
+}
+
+sim_mean_sd(n_obs = 3000, mu = 50, sigma = .5)</code></pre>
+<pre><code>## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1  50.0 0.492</code></pre>
+<pre class="r"><code>sim_mean_sd(12, 22, 4) #positional matching</code></pre>
+<pre><code>## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1  22.5  4.20</code></pre>
 </div>
 
 

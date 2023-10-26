@@ -4,7 +4,9 @@ output: html_document
 date: "2023-10-26"
 ---
 
-```{r setup, include=FALSE}
+Load key packages: 
+
+```{r setup, message = FALSE}
 library(tidyverse)
 library(rvest)
 
@@ -23,7 +25,7 @@ options(
 
 ```
 
-## Set seed for reproducibility 
+Set seed for reproducibility 
 ```{r}
 set.seed(12345)
 ```
@@ -71,5 +73,61 @@ z_score(c("my", "name", "is", "grace"))
 z_score(c(TRUE, TRUE, FALSE, TRUE))
 
 z_score(iris)
+```
+
+### Multiple outputs. 
+
+Write a function that returns the mean and sd from a sample of numbers. 
+```{r}
+mean_and_sd = function (x) {
+  
+  if(!is.numeric(x)) {
+    stop("Argument should be numbers")
+  } else if(length(x) < 2) {
+    stop("You need at least 2 arguments to get z score")
+  }
+  
+  mean_x = mean(x)
+  sd_x = sd(x)
+  
+  tibble(
+    mean = mean_x,
+    sd = sd_x
+  )
+}
+```
+
+Double-checking this is correct... 
+```{r}
+mean_and_sd(x_vec)
+```
+
+
+### Start getting means and sds
+```{r}
+x_vec = rnorm(n = 30, mean = 5, sd = .5)
+
+tibble(
+  mean = mean(x_vec),
+  sd = sd(x_vec)
+)
+```
+
+Now lets write a fucntion the uases "n", a true mean, and true sd as inputs
+```{r}
+sim_mean_sd = function(n_obs, mu, sigma) {
+  
+  x_vec = rnorm(n = n_obs, mean = mu, sd = sigma)
+
+  tibble(
+    mean = mean(x_vec),
+    sd = sd(x_vec)
+)
+}
+
+sim_mean_sd(n_obs = 3000, mu = 50, sigma = .5)
+
+sim_mean_sd(12, 22, 4) #positional matching
+
 ```
 
