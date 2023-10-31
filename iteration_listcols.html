@@ -448,6 +448,252 @@ for(i in 1:4) {
 <h3>use <code>map</code> function</h3>
 <pre class="r"><code>output = map(list_norm_samples, mean_and_sd)</code></pre>
 </div>
+<div id="creat-df" class="section level3">
+<h3>creat DF</h3>
+<pre class="r"><code>listcol_df = 
+  tibble(
+    name = c(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;),
+    samp = list_norm_samples
+  )</code></pre>
+<pre class="r"><code>mean_and_sd(listcol_df$samp[[1]])</code></pre>
+<pre><code>## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1  1.25  4.92</code></pre>
+<pre class="r"><code>mean_and_sd(listcol_df$samp[[2]])</code></pre>
+<pre><code>## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1 0.690  9.30</code></pre>
+<pre class="r"><code>mean_and_sd(listcol_df$samp[[3]])</code></pre>
+<pre><code>## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1  19.8 0.910</code></pre>
+<pre class="r"><code>map(listcol_df$samp, mean_and_sd)</code></pre>
+<pre><code>## $a
+## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1  1.25  4.92
+## 
+## $b
+## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1 0.690  9.30
+## 
+## $c
+## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1  19.8 0.910
+## 
+## $d
+## # A tibble: 1 × 2
+##    mean    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1 -44.1  14.0</code></pre>
+<pre class="r"><code>listcol_df |&gt; 
+  mutate(
+    mean_sd = map(samp, mean_and_sd),
+    median = map(samp, median)) |&gt; 
+  select(name, mean_sd) |&gt; 
+  unnest(mean_sd)</code></pre>
+<pre><code>## # A tibble: 4 × 3
+##   name     mean     sd
+##   &lt;chr&gt;   &lt;dbl&gt;  &lt;dbl&gt;
+## 1 a       1.25   4.92 
+## 2 b       0.690  9.30 
+## 3 c      19.8    0.910
+## 4 d     -44.1   14.0</code></pre>
+</div>
+<div id="nsduh" class="section level3">
+<h3>NSDUH</h3>
+<pre class="r"><code>nsduh_url = &quot;http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm&quot;
+
+nsduh_html = read_html(nsduh_url)</code></pre>
+<p>Import function.</p>
+<pre class="r"><code>nsduh_import = function(html, table_num, outcome) {
+  
+  html |&gt; 
+  html_table() |&gt; 
+  nth(table_num) |&gt;
+  slice(-1) |&gt; 
+  select(-contains(&quot;P Value&quot;)) |&gt;
+  pivot_longer(
+    -State,
+    names_to = &quot;age_year&quot;, 
+    values_to = &quot;percent&quot;) |&gt;
+  separate(age_year, into = c(&quot;age&quot;, &quot;year&quot;), sep = &quot;\\(&quot;) |&gt;
+  mutate(
+    year = str_replace(year, &quot;\\)&quot;, &quot;&quot;),
+    percent = str_replace(percent, &quot;[a-c]$&quot;, &quot;&quot;),
+    percent = as.numeric(percent),
+    outcome = outcome) |&gt;
+  filter(!(State %in% c(&quot;Total U.S.&quot;, &quot;Northeast&quot;, &quot;Midwest&quot;, &quot;South&quot;, &quot;West&quot;)))
+}
+
+nsduh_import(nsduh_html, 1, &quot;marj&quot;)</code></pre>
+<pre><code>## # A tibble: 510 × 5
+##    State   age   year      percent outcome
+##    &lt;chr&gt;   &lt;chr&gt; &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;  
+##  1 Alabama 12+   2013-2014    9.98 marj   
+##  2 Alabama 12+   2014-2015    9.6  marj   
+##  3 Alabama 12-17 2013-2014    9.9  marj   
+##  4 Alabama 12-17 2014-2015    9.71 marj   
+##  5 Alabama 18-25 2013-2014   27.0  marj   
+##  6 Alabama 18-25 2014-2015   26.1  marj   
+##  7 Alabama 26+   2013-2014    7.1  marj   
+##  8 Alabama 26+   2014-2015    6.81 marj   
+##  9 Alabama 18+   2013-2014    9.99 marj   
+## 10 Alabama 18+   2014-2015    9.59 marj   
+## # ℹ 500 more rows</code></pre>
+<pre class="r"><code>nsduh_import(nsduh_html, 4, &quot;cocaine&quot;)</code></pre>
+<pre><code>## # A tibble: 510 × 5
+##    State   age   year      percent outcome
+##    &lt;chr&gt;   &lt;chr&gt; &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;  
+##  1 Alabama 12+   2013-2014    1.23 cocaine
+##  2 Alabama 12+   2014-2015    1.22 cocaine
+##  3 Alabama 12-17 2013-2014    0.42 cocaine
+##  4 Alabama 12-17 2014-2015    0.41 cocaine
+##  5 Alabama 18-25 2013-2014    3.09 cocaine
+##  6 Alabama 18-25 2014-2015    3.2  cocaine
+##  7 Alabama 26+   2013-2014    1.01 cocaine
+##  8 Alabama 26+   2014-2015    0.99 cocaine
+##  9 Alabama 18+   2013-2014    1.31 cocaine
+## 10 Alabama 18+   2014-2015    1.31 cocaine
+## # ℹ 500 more rows</code></pre>
+<pre class="r"><code>nsduh_import(nsduh_html, 5, &quot;heroin&quot;)</code></pre>
+<pre><code>## # A tibble: 510 × 5
+##    State   age   year      percent outcome
+##    &lt;chr&gt;   &lt;chr&gt; &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;  
+##  1 Alabama 12+   2013-2014    0.22 heroin 
+##  2 Alabama 12+   2014-2015    0.27 heroin 
+##  3 Alabama 12-17 2013-2014    0.1  heroin 
+##  4 Alabama 12-17 2014-2015    0.08 heroin 
+##  5 Alabama 18-25 2013-2014    0.45 heroin 
+##  6 Alabama 18-25 2014-2015    0.64 heroin 
+##  7 Alabama 26+   2013-2014    0.19 heroin 
+##  8 Alabama 26+   2014-2015    0.23 heroin 
+##  9 Alabama 18+   2013-2014    0.23 heroin 
+## 10 Alabama 18+   2014-2015    0.29 heroin 
+## # ℹ 500 more rows</code></pre>
+<p>Import data using a for loop</p>
+<pre class="r"><code>table_input = list(1, 4, 5)
+name_input = list(&quot;marj&quot;, &quot;cocaine&quot;, &quot;heroin&quot;)
+
+output = vector(&quot;list&quot;, length = 3)
+
+for (i in c(1:3)) {
+  
+  output[[i]] = nsduh_import(nsduh_html, table_input[[i]], name_input[[i]])
+
+}
+
+nsduh_df = bind_rows(output)</code></pre>
+<p>Try now using maps!</p>
+<pre class="r"><code>nsduh_import = function(html, table_num) {
+  
+table = 
+  html |&gt; 
+  html_table() |&gt; 
+  nth(table_num) |&gt;
+  slice(-1) |&gt; 
+  select(-contains(&quot;P Value&quot;)) |&gt;
+  pivot_longer(
+    -State,
+    names_to = &quot;age_year&quot;, 
+    values_to = &quot;percent&quot;) |&gt;
+  separate(age_year, into = c(&quot;age&quot;, &quot;year&quot;), sep = &quot;\\(&quot;) |&gt;
+  mutate(
+    year = str_replace(year, &quot;\\)&quot;, &quot;&quot;),
+    percent = str_replace(percent, &quot;[a-c]$&quot;, &quot;&quot;),
+    percent = as.numeric(percent))|&gt;
+  filter(!(State %in% c(&quot;Total U.S.&quot;, &quot;Northeast&quot;, &quot;Midwest&quot;, &quot;South&quot;, &quot;West&quot;)))
+}
+
+map(nsduh_df$number, nsduh_import, html = nsduh_html)</code></pre>
+<pre><code>## Warning: Unknown or uninitialised column: `number`.</code></pre>
+<pre><code>## list()</code></pre>
+<pre class="r"><code>nsduh_df = 
+  tibble(
+    name = c(&quot;marj&quot;, &quot;cocaine&quot;, &quot;heroin&quot;),
+    number = c(1,4,5)
+  ) |&gt; 
+  mutate(
+    table = map(number, nsduh_import, html = nsduh_html)
+  ) |&gt; 
+  unnest(table)</code></pre>
+</div>
+<div id="revisiting-weather-data-set" class="section level3">
+<h3>Revisiting weather data set</h3>
+<pre class="r"><code>weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c(&quot;USW00094728&quot;, &quot;USW00022534&quot;, &quot;USS0023B17S&quot;),
+    var = c(&quot;PRCP&quot;, &quot;TMIN&quot;, &quot;TMAX&quot;), 
+    date_min = &quot;2021-01-01&quot;,
+    date_max = &quot;2022-12-31&quot;) |&gt;
+  mutate(
+    name = recode(
+      id, 
+      USW00094728 = &quot;CentralPark_NY&quot;, 
+      USW00022534 = &quot;Molokai_HI&quot;,
+      USS0023B17S = &quot;Waterhole_WA&quot;),
+    tmin = tmin / 10,
+    tmax = tmax / 10) |&gt;
+  select(name, id, everything())</code></pre>
+<pre><code>## Registered S3 method overwritten by &#39;hoardr&#39;:
+##   method           from
+##   print.cache_info httr</code></pre>
+<pre><code>## using cached file: /Users/gracesantos/Library/Caches/org.R-project.R/R/rnoaa/noaa_ghcnd/USW00094728.dly</code></pre>
+<pre><code>## date created (size, mb): 2023-09-28 10:20:18.929435 (8.524)</code></pre>
+<pre><code>## file min/max dates: 1869-01-01 / 2023-09-30</code></pre>
+<pre><code>## using cached file: /Users/gracesantos/Library/Caches/org.R-project.R/R/rnoaa/noaa_ghcnd/USW00022534.dly</code></pre>
+<pre><code>## date created (size, mb): 2023-09-28 10:20:32.603484 (3.83)</code></pre>
+<pre><code>## file min/max dates: 1949-10-01 / 2023-09-30</code></pre>
+<pre><code>## using cached file: /Users/gracesantos/Library/Caches/org.R-project.R/R/rnoaa/noaa_ghcnd/USS0023B17S.dly</code></pre>
+<pre><code>## date created (size, mb): 2023-09-28 10:20:37.044561 (0.994)</code></pre>
+<pre><code>## file min/max dates: 1999-09-01 / 2023-09-30</code></pre>
+<pre class="r"><code>weather_nest_df = 
+weather_df |&gt; 
+  nest(df = date:tmin)</code></pre>
+<p>Can I regress <code>tmax</code> on <code>tmin</code> for each of
+these?</p>
+<pre class="r"><code>central_park_df = 
+  weather_nest_df |&gt; 
+  pull(df) |&gt; 
+  nth(1)</code></pre>
+<p>fit a linear regression for central park</p>
+<pre class="r"><code>weather_lm = function(df) {
+ lm(tmax ~ tmin, data = df) 
+}
+
+weather_lm(central_park_df)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = tmax ~ tmin, data = df)
+## 
+## Coefficients:
+## (Intercept)         tmin  
+##       7.514        1.034</code></pre>
+<p>let’s try a for loop</p>
+<pre class="r"><code>input_list =  weather_nest_df |&gt; pull(df) 
+output = vector(&quot;list&quot;, length = 3)
+
+for(i in 1:3){
+  output[[i]] = weather_lm(input_list[[i]])
+}
+
+weather_nest_df |&gt; 
+  mutate(models = map(df, weather_lm))</code></pre>
+<pre><code>## # A tibble: 3 × 4
+##   name           id          df                 models
+##   &lt;chr&gt;          &lt;chr&gt;       &lt;list&gt;             &lt;list&gt;
+## 1 CentralPark_NY USW00094728 &lt;tibble [730 × 4]&gt; &lt;lm&gt;  
+## 2 Molokai_HI     USW00022534 &lt;tibble [730 × 4]&gt; &lt;lm&gt;  
+## 3 Waterhole_WA   USS0023B17S &lt;tibble [730 × 4]&gt; &lt;lm&gt;</code></pre>
+</div>
 
 
 
